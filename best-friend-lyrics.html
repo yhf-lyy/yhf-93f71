@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>最佳损友 · 像素歌词动画</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden;}
+  canvas{display:block;image-rendering:pixelated;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+let W, H, PX = 4; // 像素块大小
+
+function resize(){
+  W = cv.width  = Math.floor(innerWidth  / PX) * PX;
+  H = cv.height = Math.floor(innerHeight / PX) * PX;
+  ctx.imageSmoothingEnabled = false;
+}
+addEventListener('resize', resize); resize();
+
+// 歌词数据：[粤语, 粤拼]
+const lyrics = [
+["朋友 我当你一秒朋友","pang jau ngo dong nei jat miu pang jau"],
+["朋友 我当你一世朋友","pang jau ngo dong nei jat sai pang jau"],
+["奇怪 过去再不堪回首","kei gwaai gwo heoi zoi bat ham wui sau"],
+["怀缅 时时其实还有","waai min si si kei sat waan jau"],
+["朋友 你试过将我营救","pang jau nei si gwo zoeng ngo jing gau"],
+["朋友 你试过把我批斗","pang jau nei si gwo baa ngo pai dau"],
+["无法 再与你交心联手","mou faat zoi jyu nei gaau sam lyun sau"],
+["毕竟 难得有过最佳损友","bat ging naan dak jau gwo zeoi gaai syun jau"],
+["从前共你 促膝把酒","cong cin gong nei cu sa ba zao"],
+["倾通宵都不够","king tung siu dou bat gau"],
+["我有痛快过 你有没有","ngo jau tung faai gwo nei jau mut jau"],
+["很多东西今生只可给你","han do dung sai gam sang zi ho kap nei"],
+["保守至到永久","bou sau zi dou wing gau"],
+["别人如何明白透","bit jan jyu ho ming baak tau"],
+["实实在在 踏入过我宇宙","sat sat zoi zoi daap jap gwo ngo jyu zau"],
+["即使相处到 有个裂口","zik si soeng cyu dou jau go lit hau"],
+["命运决定了 以后再没法聚头","ming wan kyut ding liu ji hau zoi mut faat zeoi tau"],
+["但说过去 却那样厚","daan syut gwo heoi koek naa joeng hau"],
+["问我有没有 确实也没有","man ngo jau mut jau kok sat jaa mut jau"],
+["一直躲避的借口 非甚么大仇","jat zik do bei dik ze hau fei sam mo daai sau"],
+["为何旧知己 在最后","wai ho gau zi gei zoi zeoi hau"],
+["变不到老友","bin bat dou lou jau"],
+["不知你是我敌友 已没法望透","bat zi nei si ngo dik jau yi mut faat mong tau"],
+["被推着走 跟着生活流","bei teoi zoek zau gan zoek sang wut lau"],
+["来年陌生的","loi nin mak sang dik"],
+["是昨日最亲的某某","si zok jat zeoi can dik mau mau"],
+["生死之交当天不知罕有","sang sei zi gaau dong tin bat zi hon jau"],
+["到你变节了 至觉未够","dou nei bin zit liu zi gok mei gau"],
+["多想一天 彼此都不追究","do soeng jat tin bei ci dou bat zeoi gau"],
+["相邀再次喝酒","soeng jiu zoi ci hot zau"],
+["待 葡萄成熟透","doi pou tou sing suk tau"],
+["但是命运入面 每个邂逅","daan si ming wan jap min mui go haai hau"],
+["一起走到了 某个路口","jat hei zau dou liu mau go lou hau"],
+["是敌与是友 各自也没有自由","si dik jyu si jau gok zi jaa mut jau zi jau"],
+["位置变了 各有队友","wai zi bin liu gok jau deoi jau"],
+["问我有没有 确实也没有","man ngo jau mut jau kok sat jaa mut jau"],
+["一直躲避的借口 非甚么大仇","jat zik do bei dik ze hau fei sam mo daai sau"],
+["为何旧知己 在最后","wai ho gau zi gei zoi zeoi hau"],
+["变不到老友","bin bat dou lou jau"],
+["不知你是我敌友 已没法望透","bat zi nei si ngo dik jau yi mut faat mong tau"],
+["被推着走 跟着生活流","bei teoi zoek zau gan zoek sang wut lau"],
+["来年陌生的","loi nin mak sang dik"],
+["是昨日最亲的某某","si zok jat zeoi can dik mau mau"],
+["早知解散后 各自有际遇作导游","zou zi gaai saan hau gok zi jau zai jyu zok dou jau"],
+["奇就奇在 接受了 各自有路走","kei zau kei zoi zip sau liu gok zi jau lou zau"],
+["却没人像你 让我 眼泪背着流","koek mut jan zoeng nei joeng ngo ngaan leoi bui zoek lau"],
+["严重似情侣 讲分手","jim zung ci cing leoi gong fan sau"],
+["有没有 确实也没有","jau mut jau kok sat jaa mut jau"],
+["一直躲避的借口 非甚么大仇","jat zik do bei dik ze hau fei sam mo daai sau"],
+["为何旧知己 在最后 变不到老友","wai ho gau zi gei zoi zeoi hau bin bat dou lou jau"],
+["不知你又有没有 挂念这旧友","bat zi nei jau jau mut jau gwaa nim ze gau jau"],
+["或者自己 早就想通透","waak ze zi gei zou zau soeng tung tau"],
+["来年陌生的 是昨日 最亲的某某","loi nin mak sang dik si zok jat zeoi can dik mau mau"],
+["总好于 那日我 没有","zung hou jyu naa jat ngo mut jau"],
+["没有 遇过 某某","mut jau jyu gwo mau mau"]
+];
+
+// 逐字累积状态
+let lineIdx = 0;       // 当前行
+let charIdx = 0;       // 当前行已显示字数
+let timer = 0;         // 打字计时
+const CHAR_MS = 90;    // 每字间隔
+const LINE_HOLD = 1400;// 每行打完后停留
+
+// 像素小元素
+let px = [];
+function spawnPixel(){
+  px.push({
+    x: Math.random()*W,
+    y: H + 10,
+    vy: -(0.3 + Math.random()*0.8),
+    vx: (Math.random()-0.5)*0.3,
+    size: PX*(1+Math.floor(Math.random()*2)),
+    hue: 180 + Math.random()*80,
+    life: 1
+  });
+}
+setInterval(spawnPixel, 120);
+
+// 心形像素位图（7x6）
+const heart = [
+ [0,1,0,0,0,1,0],
+ [1,1,1,0,1,1,1],
+ [1,1,1,1,1,1,1],
+ [0,1,1,1,1,1,0],
+ [0,0,1,1,1,0,0],
+ [0,0,0,1,0,0,0]
+];
+
+let last = performance.now();
+
+function drawHeart(cx, cy, scale, color){
+  for(let y=0;y<heart.length;y++)
+    for(let x=0;x<heart[y].length;x++)
+      if(heart[y][x]){
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(cx + x*scale - 3.5*scale),
+                     Math.round(cy + y*scale - 3*scale),
+                     scale, scale);
+      }
+}
+
+function loop(t){
+  const dt = t - last; last = t;
+
+  // 背景渐变
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0b0b14');
+  g.addColorStop(1,'#141428');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+
+  // 星星
+  const now = t*0.001;
+  for(let i=0;i<40;i++){
+    const sx = (i*137 + Math.floor(now*10)) % W;
+    const sy = (i*89) % H;
+    ctx.fillStyle = i%3===0 ? '#ffffff' : '#556';
+    ctx.fillRect(Math.round(sx/PX)*PX, Math.round(sy/PX)*PX, PX, PX);
+  }
+
+  // 飘浮像素（向上漂的小方块）
+  for(let i=px.length-1;i>=0;i--){
+    const p = px[i];
+    p.x += p.vx; p.y += p.vy; p.life -= 0.004;
+    if(p.life <= 0 || p.y < -20){ px.splice(i,1); continue; }
+    ctx.fillStyle = `hsla(${p.hue},80%,70%,${Math.max(0,p.life)*0.7})`;
+    ctx.fillRect(Math.round(p.x/PX)*PX, Math.round(p.y/PX)*PX, p.size, p.size);
+  }
+
+  // 打字逻辑
+  const [cn, jp] = lyrics[lineIdx] || ["",""];
+  timer += dt;
+  if(charIdx < cn.length){
+    if(timer >= CHAR_MS){ timer -= CHAR_MS; charIdx++; }
+  } else {
+    if(timer >= LINE_HOLD){
+      timer = 0; charIdx = 0; lineIdx++;
+      if(lineIdx >= lyrics.length) lineIdx = 0;
+    }
+  }
+
+  // 文本绘制（像素风：用等宽字体 + 硬边）
+  const baseY = H*0.42;
+  const totalChars = cn.length;
+  const shown = cn.slice(0, charIdx);
+
+  // 粤语主句
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(44, W/16)}px "PingFang HK","Microsoft YaHei",monospace`;
+  // 阴影像素感
+  ctx.fillStyle = '#000';
+  ctx.fillText(shown, W/2 + PX, baseY + PX);
+  ctx.fillStyle = '#7dffd4';
+  ctx.fillText(shown, W/2, baseY);
+
+  // 粤拼（按比例显示已打出字的对应拼音片段）
+  const pjRatio = totalChars ? charIdx/totalChars : 0;
+  const pjShown = jp.slice(0, Math.floor(jp.length * pjRatio));
+  ctx.font = `${Math.min(18, W/40)}px monospace`;
+  ctx.fillStyle = '#3f8f7a';
+  ctx.fillText(pjShown, W/2 + PX, baseY + 52 + PX);
+  ctx.fillStyle = '#8fe6c8';
+  ctx.fillText(pjShown, W/2, baseY + 52);
+
+  // 上一行残影（淡化）
+  if(lineIdx > 0){
+    const [pcn, pjp] = lyrics[lineIdx-1];
+    ctx.font = `${Math.min(16, W/46)}px monospace`;
+    ctx.fillStyle = 'rgba(120,180,200,0.25)';
+    ctx.fillText(pcn, W/2, baseY - 60);
+  }
+
+  // 像素小人 + 心
+  const bob = Math.sin(now*6)*6;
+  const hx = W/2;
+  const hy = H*0.72 + bob;
+  drawHeart(hx, hy, PX, '#ff4d6d');
+  // 两侧像素小人
+  drawGuy(hx - 160, hy + 20 + Math.sin(now*5)*4, '#66e0ff');
+  drawGuy(hx + 160, hy + 20 + Math.sin(now*5 + Math.PI)*4, '#ffb84d');
+
+  // 扫描线
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  for(let y=0;y<H;y+=4) ctx.fillRect(0,y,W,2);
+
+  // 进度
+  ctx.textAlign = 'left';
+  ctx.font = '12px monospace';
+  ctx.fillStyle = 'rgba(150,230,210,0.6)';
+  ctx.fillText(`${lineIdx+1}/${lyrics.length}`, 12, H-14);
+
+  requestAnimationFrame(loop);
+}
+
+// 简单像素小人
+function drawGuy(x,y,color){
+  const s = PX;
+  ctx.fillStyle = color;
+  // 头
+  ctx.fillRect(Math.round(x/s)*s - s, Math.round(y/s)*s - 4*s, 2*s, 2*s);
+  // 身体
+  ctx.fillRect(Math.round(x/s)*s, Math.round(y/s)*s - 2*s, s, 3*s);
+  // 腿
+  ctx.fillRect(Math.round(x/s)*s - s, Math.round(y/s)*s + s, s, 2*s);
+  ctx.fillRect(Math.round(x/s)*s + s, Math.round(y/s)*s + s, s, 2*s);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
